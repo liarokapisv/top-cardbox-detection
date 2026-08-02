@@ -1,0 +1,5 @@
+dataset/two_lights/
+synth_*
+overlays*
+.git
+*.log

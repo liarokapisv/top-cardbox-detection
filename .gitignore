@@ -1,0 +1,8 @@
+dataset/two_lights/
+synth_train/
+synth_val/
+synth_rbg_train/
+synth_rbg_val/
+overlays*/
+__pycache__/
+*.log

@@ -1,0 +1,3 @@
+numpy
+opencv-python-headless
+ultralytics    # only needed for sam_refine.py (SAM 2.1 hybrid); UNet path works without it
