@@ -31,6 +31,7 @@ FACE_JIT = 5.0        # mm, per-face free-corner jitter (compliance)
 TILT_JIT = 0.05       # fraction, whole-object perspective corner jitter
 SEAM_SEARCH = 14      # px(=mm) each side of the canonical seam row
 SEAM_MIN_DEPTH = 5.0  # gray levels below baseline to accept a crease
+SIDES = ("A",)        # only the printed side; side B (brown back) is unused
 
 
 def canonical_vertices(scale, mirror, h1=0.0):
@@ -89,6 +90,8 @@ def load_cutouts():
     lref = json.load(open("overlays_lfit/lfit_results.json"))
     cuts = []
     for k, m in meta.items():
+        if m["side"] not in SIDES:
+            continue
         f = m["frame"]
         r = lref[f]
         img = cv2.imread(f"cutouts/{k}.png", cv2.IMREAD_UNCHANGED)
