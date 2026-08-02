@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 """Articulated synthetic generator v3.
 
-Each cutout is rectified to the canonical L frame and split into its 3
-face rectangles:
-    A = [0, W-nw] x [0, nh]     (beside the notch)
-    B = [0, W-nw] x [nh, H]
-    C = [W-nw, W] x [nh, H]
-Seams: A-B at y=nh, B-C at x=W-nw.
+Each cutout is rectified to the canonical frame and split into its 3
+faces (F1 flap / M middle / F3 flap) at the two hinge rows. The seam
+rows are refined per cutout: the actual fold crease (dark line) is
+searched near the canonical position, so the split follows the physical
+crease even when the source blank was photographed slightly folded.
 
 Per generated box:
-  * per-face compliance: each face is perspective-warped with its SEAM
-    corners pinned and only free outer corners jittered slightly (+ per-
-    face brightness) -> faces flex but coincide exactly at the seams
+  * each flap folds about its true hinge row (edge revolute joint, the
+    hinge line is pinned so the seam stays closed by construction);
+    face brightness follows its tilt
+  * content is split into full-width bands at the seam rows with a 2 px
+    overlap, and residual cracks inside the outline are inpainted
   * whole object: slight out-of-plane tilt (small perspective), full
     in-plane rotation, translation, slight scale
-The composed outline stays an exact 6-point polygon -> the top-box label.
+The composed outline stays an exact 6/8-point polygon -> top-box label.
 """
 import numpy as np
 import cv2
@@ -28,10 +29,59 @@ PXM = 1000.0          # canonical raster: 1 px per mm
 MARGIN = 40           # px margin around canonical canvas
 FACE_JIT = 5.0        # mm, per-face free-corner jitter (compliance)
 TILT_JIT = 0.05       # fraction, whole-object perspective corner jitter
+SEAM_SEARCH = 14      # px(=mm) each side of the canonical seam row
+SEAM_MIN_DEPTH = 5.0  # gray levels below baseline to accept a crease
 
 
 def canonical_vertices(scale, mirror, h1=0.0):
     return LF.l_polygon(scale, mirror, h1) * PXM   # mm
+
+
+def find_crease(gray, a, y_can, x0, x1, ylo, yhi):
+    """Refine one seam row: darkest smoothed row (the fold line) within
+    +/-SEAM_SEARCH of the canonical position; canonical kept if no clear
+    crease shows in the texture."""
+    lo = int(max(ylo, y_can - SEAM_SEARCH))
+    hi = int(min(yhi, y_can + SEAM_SEARCH + 1))
+    xs0, xs1 = int(max(0, x0 + 3)), int(min(gray.shape[1], x1 - 3))
+    if hi - lo < 5 or xs1 - xs0 < 20:
+        return float(y_can)
+    band = gray[lo:hi, xs0:xs1]
+    ok = a[lo:hi, xs0:xs1] > 128
+    cnt = ok.sum(axis=1)
+    rows = (band * ok).sum(axis=1) / np.maximum(cnt, 1)
+    valid = cnt > 0.6 * (xs1 - xs0)
+    if valid.sum() < 5:
+        return float(y_can)
+    base = float(np.median(rows[valid]))
+    rows[~valid] = base
+    k = np.array([1, 4, 6, 4, 1], np.float32) / 16
+    sm = np.convolve(rows, k, mode="same")
+    i = int(np.argmin(sm))
+    if base - sm[i] < SEAM_MIN_DEPTH or not valid[i]:
+        return float(y_can)
+    return float(lo + i)
+
+
+def _rect(x0, x1, ya, yb):
+    return np.array([(x0, ya), (x1, ya), (x1, yb), (x0, yb)], np.float64)
+
+
+def refine_seams(rgb, a, faces):
+    """Per-cutout seam rows: canonical hinge positions nudged onto the
+    actual crease found in the rectified texture."""
+    F1, M, F3 = faces
+    gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    y1, y3 = float(M[:, 1].min()), float(M[:, 1].max())
+    y_top = min(float(q[:, 1].min()) for q in faces)
+    y_bot = max(float(q[:, 1].max()) for q in faces)
+    if abs(cv2.contourArea(F1.astype(np.float32))) >= 100:
+        y1 = find_crease(gray, a, y1, F1[:, 0].min(), F1[:, 0].max(),
+                         y_top + 3, y3 - 10)
+    if abs(cv2.contourArea(F3.astype(np.float32))) >= 100:
+        y3 = find_crease(gray, a, y3, F3[:, 0].min(), F3[:, 0].max(),
+                         y1 + 10, y_bot - 3)
+    return y1, y3
 
 
 def load_cutouts():
@@ -56,9 +106,14 @@ def load_cutouts():
         h1 = r.get("top_flap_h1_m", 0.0)
         faces = [q * PXM - vmin + MARGIN
                  for q in LF.l_faces(r["scale"], r["mirror"], h1)]
+        y1, y3 = refine_seams(rgb, a, faces)
+        F1, M, F3 = faces
+        faces = [_rect(F1[:, 0].min(), F1[:, 0].max(), F1[:, 1].min(), y1),
+                 _rect(M[:, 0].min(), M[:, 0].max(), y1, y3),
+                 _rect(F3[:, 0].min(), F3[:, 0].max(), y3, F3[:, 1].max())]
         cuts.append(dict(key=k, side=m["side"], mirror=r["mirror"],
                          scale=r["scale"], rgb=rgb, a=a, verts=verts,
-                         faces=faces))
+                         faces=faces, seams=(y1, y3)))
     return cuts
 
 
@@ -79,7 +134,7 @@ def hinge_fold(quad, hinge_p0, hinge_p1, theta, view_vec):
     return out
 
 
-def articulate(cut, rng):
+def articulate(cut, rng, dbg=False):
     """Compose the box from its 3 rigid faces (F1 flap, M middle, F3 flap)
     sharing 2 edge revolute joints. M is the base; each flap folds about
     its hinge with M. Face brightness follows its tilt."""
@@ -88,63 +143,83 @@ def articulate(cut, rng):
     canvas_rgb = np.zeros((ch, cw, 3), np.float32)
     canvas_a = np.zeros((ch, cw), np.float32)
     F1, M, F3 = [q.copy() for q in cut["faces"]]
+    y1, y3 = cut["seams"]
 
     def hinge_edge(flap, base):
         """The flap edge shared with the base face (the 2 flap corners
-        closest to the base quad)."""
-        d = [min(np.linalg.norm(p - b) for b in base) for p in flap]
+        closest to the base QUAD, not its corners — the seam corners lie
+        on the base's edge, so quad distance is 0 there)."""
+        bq = base.astype(np.float32)
+        d = [abs(cv2.pointPolygonTest(bq, (float(p[0]), float(p[1])), True))
+             for p in flap]
         i2 = np.argsort(d)[:2]
         return flap[i2[0]], flap[i2[1]]
 
     view = rng.uniform(-0.35, 0.35, 2)
     light = rng.choice([-1.0, 1.0])
-    warps = []
-    areaF1 = abs(cv2.contourArea(F1.astype(np.float32)))
+    warps, thetas = [], []
     for flap in (F1, F3):
         if abs(cv2.contourArea(flap.astype(np.float32))) < 100:  # folded away
             warps.append((flap, flap.copy(), 1.0))
+            thetas.append(0.0)
             continue
         th = np.deg2rad(rng.uniform(-14, 14))
+        thetas.append(float(np.degrees(th)))
         h0, h1_ = hinge_edge(flap, M)
         warps.append((flap, hinge_fold(flap, h0, h1_, th, view),
                       1.0 + 0.22 * np.sin(th) * light))
     (srcF1, dstF1, gF1), (srcF3, dstF3, gF3) = warps
     dstM, gM = M.copy(), rng.uniform(0.96, 1.04)
 
-    for src, dst, g in ((srcF1, dstF1, gF1), (M, dstM, gM), (srcF3, dstF3, gF3)):
-        if abs(cv2.contourArea(src.astype(np.float32))) < 100:
+    alive = [abs(cv2.contourArea(q.astype(np.float32))) >= 100
+             for q in (srcF1, M, srcF3)]
+    Mxs = [cv2.getPerspectiveTransform(s.astype(np.float32),
+                                       d.astype(np.float32)) if alive[i]
+           else np.eye(3)
+           for i, (s, d) in enumerate(((srcF1, dstF1), (M, dstM),
+                                       (srcF3, dstF3)))]
+    # content split: full-width bands at the (refined) seam rows tile every
+    # alpha>0 pixel exactly once; +2 px overlap kills aliasing cracks
+    # (overlaps resolved by the max-alpha keep below)
+    r1, r3 = int(round(y1)), int(round(y3))
+    bands = [(0, r1), (r1, r3), (r3, ch)]
+    for i, g in enumerate((gF1, gM, gF3)):
+        if not alive[i]:
             continue
-        Mx = cv2.getPerspectiveTransform(src.astype(np.float32),
-                                         dst.astype(np.float32))
+        b0, b1 = bands[i]
         fm = np.zeros((ch, cw), np.uint8)
-        cv2.fillPoly(fm, [src.astype(np.int32)], 255)
+        fm[max(b0 - 2, 0):min(b1 + 2, ch), :] = 255
         frgb = cut["rgb"].copy(); frgb[fm == 0] = 0
         fa = cut["a"].copy(); fa[fm == 0] = 0
-        wrgb = cv2.warpPerspective(frgb, Mx, (cw, ch)).astype(np.float32) * g
-        wa = cv2.warpPerspective(fa, Mx, (cw, ch)).astype(np.float32)
+        wrgb = cv2.warpPerspective(frgb, Mxs[i], (cw, ch)).astype(np.float32) * g
+        wa = cv2.warpPerspective(fa, Mxs[i], (cw, ch)).astype(np.float32)
         keep = wa > canvas_a
         canvas_rgb[keep] = wrgb[keep]
         canvas_a[keep] = wa[keep]
 
-    # articulated outline: map each vertex through the warp of the face
-    # that owns it (nearest quad); hinge points agree from either side
-    quads = [(srcF1, dstF1), (M, dstM), (srcF3, dstF3)]
+    # articulated outline: each vertex moves with the face that owns it
+    # (by seam band); hinge rows agree from either side
     new_verts = verts.copy()
     for i, v in enumerate(verts):
-        dmin, own = None, None
-        for src, dst in quads:
-            if abs(cv2.contourArea(src.astype(np.float32))) < 100:
-                continue
-            d = cv2.pointPolygonTest(src.astype(np.float32),
-                                     (float(v[0]), float(v[1])), True)
-            if dmin is None or d > dmin:
-                dmin, own = d, (src, dst)
-        Mx = cv2.getPerspectiveTransform(own[0].astype(np.float32),
-                                         own[1].astype(np.float32))
-        p = Mx @ np.array([v[0], v[1], 1.0])
+        j = 0 if v[1] < y1 else (2 if v[1] >= y3 else 1)
+        if not alive[j]:
+            j = 1
+        p = Mxs[j] @ np.array([v[0], v[1], 1.0])
         new_verts[i] = p[:2] / p[2]
-    return canvas_rgb.clip(0, 255).astype(np.uint8), \
-        canvas_a.clip(0, 255).astype(np.uint8), new_verts
+
+    rgb8 = canvas_rgb.clip(0, 255).astype(np.uint8)
+    a8 = canvas_a.clip(0, 255).astype(np.uint8)
+    # seal any residual crack strictly inside the articulated outline
+    interior = np.zeros((ch, cw), np.uint8)
+    cv2.fillPoly(interior, [np.round(new_verts).astype(np.int32)], 255)
+    interior = cv2.erode(interior, np.ones((5, 5), np.uint8))
+    holes = ((interior > 0) & (a8 < 100)).astype(np.uint8) * 255
+    if holes.any():
+        rgb8 = cv2.inpaint(rgb8, holes, 3, cv2.INPAINT_TELEA)
+        a8[holes > 0] = 255
+    if dbg:
+        return rgb8, a8, new_verts, [dstF1, dstM, dstF3], alive, thetas
+    return rgb8, a8, new_verts
 
 
 def gen(out, N, seed):
