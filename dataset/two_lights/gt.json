@@ -1,0 +1,497 @@
+{
+  "000": {
+    "primary": [
+      303.0,
+      335.0
+    ],
+    "alternates": [
+      [
+        133.0,
+        351.0
+      ]
+    ],
+    "face": "BACK",
+    "face_confidence": 1.0,
+    "face_source": "manual",
+    "alternates_face": [
+      "BACK"
+    ]
+  },
+  "001": {
+    "primary": [
+      198.0,
+      280.0
+    ],
+    "alternates": [
+      [
+        402.0,
+        158.0
+      ]
+    ],
+    "face": "FRONT",
+    "face_confidence": 0.16540858725761773,
+    "face_source": "auto",
+    "alternates_face": [
+      "BACK"
+    ]
+  },
+  "002": {
+    "primary": [
+      163.0,
+      287.0
+    ],
+    "alternates": [
+      [
+        433.0,
+        295.0
+      ]
+    ],
+    "face": "FRONT",
+    "face_confidence": 0.19519550044046893,
+    "face_source": "auto",
+    "alternates_face": [
+      "BACK"
+    ]
+  },
+  "003": {
+    "primary": [
+      408.0,
+      160.0
+    ],
+    "alternates": [
+      [
+        154.0,
+        290.0
+      ]
+    ],
+    "face": "FRONT",
+    "face_confidence": 0.22546370311682065,
+    "face_source": "auto",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "004": {
+    "primary": [
+      430.0,
+      225.0
+    ],
+    "alternates": [
+      [
+        157.0,
+        287.0
+      ]
+    ],
+    "face": "FRONT",
+    "face_confidence": 0.10463915337926741,
+    "face_source": "auto",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "005": {
+    "primary": [
+      396.0,
+      254.0
+    ],
+    "alternates": [
+      [
+        155.0,
+        289.0
+      ]
+    ],
+    "face": "BACK",
+    "face_confidence": 1.0,
+    "face_source": "manual",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "006": {
+    "primary": [
+      396.0,
+      249.0
+    ],
+    "alternates": [
+      [
+        133.0,
+        269.0
+      ]
+    ],
+    "face": "BACK",
+    "face_confidence": 1.0,
+    "face_source": "manual",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "007": {
+    "primary": [
+      399.0,
+      267.0
+    ],
+    "alternates": [],
+    "face": "BACK",
+    "face_confidence": 0.2740037443166622,
+    "face_source": "auto"
+  },
+  "008": {
+    "primary": [
+      413.0,
+      151.0
+    ],
+    "alternates": [],
+    "face": "FRONT",
+    "face_confidence": 0.22945756114072946,
+    "face_source": "auto"
+  },
+  "009": {
+    "primary": [
+      311.0,
+      191.0
+    ],
+    "alternates": [],
+    "face": "FRONT",
+    "face_confidence": 0.15733308443780722,
+    "face_source": "auto"
+  },
+  "010": {
+    "primary": [
+      290.0,
+      238.0
+    ],
+    "alternates": [],
+    "face": "FRONT",
+    "face_confidence": 0.13611697316852578,
+    "face_source": "auto"
+  },
+  "011": {
+    "primary": [
+      286.0,
+      258.0
+    ],
+    "alternates": [],
+    "face": "BACK",
+    "face_confidence": 0.2780328741598456,
+    "face_source": "auto"
+  },
+  "012": {
+    "primary": [
+      313.0,
+      316.0
+    ],
+    "alternates": [],
+    "face": "BACK",
+    "face_confidence": 0.2821990826825338,
+    "face_source": "auto"
+  },
+  "013": {
+    "primary": [
+      137.0,
+      305.0
+    ],
+    "alternates": [],
+    "face": "BACK",
+    "face_confidence": 1.0,
+    "face_source": "manual"
+  },
+  "014": {
+    "primary": [
+      138.0,
+      340.0
+    ],
+    "alternates": [],
+    "face": "BACK",
+    "face_confidence": 0.2744650999649246,
+    "face_source": "auto"
+  },
+  "015": {
+    "primary": [
+      137.0,
+      340.0
+    ],
+    "alternates": [
+      [
+        429.0,
+        291.0
+      ]
+    ],
+    "face": "BACK",
+    "face_confidence": 0.2773286467486819,
+    "face_source": "auto",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "016": {
+    "primary": [
+      139.0,
+      342.0
+    ],
+    "alternates": [
+      [
+        441.0,
+        277.0
+      ]
+    ],
+    "face": "BACK",
+    "face_confidence": 0.2756121792998656,
+    "face_source": "auto",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "017": {
+    "primary": [
+      419.0,
+      294.0
+    ],
+    "alternates": [
+      [
+        141.0,
+        342.0
+      ]
+    ],
+    "face": "FRONT",
+    "face_confidence": 0.3325674250414344,
+    "face_source": "auto",
+    "alternates_face": [
+      "BACK"
+    ]
+  },
+  "018": {
+    "primary": [
+      171.0,
+      203.0
+    ],
+    "alternates": [],
+    "face": "FRONT",
+    "face_confidence": 0.4169957719648748,
+    "face_source": "auto"
+  },
+  "019": {
+    "primary": [
+      372.0,
+      357.0
+    ],
+    "alternates": [],
+    "face": "BACK",
+    "face_confidence": 0.22646827780601636,
+    "face_source": "auto"
+  },
+  "020": {
+    "primary": [
+      371.0,
+      337.0
+    ],
+    "alternates": [
+      [
+        190.0,
+        186.0
+      ]
+    ],
+    "face": "BACK",
+    "face_confidence": 1.0,
+    "face_source": "manual",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "021": {
+    "primary": [
+      361.0,
+      321.0
+    ],
+    "alternates": [
+      [
+        162.0,
+        143.0
+      ]
+    ],
+    "face": "BACK",
+    "face_confidence": 0.4320006761896712,
+    "face_source": "auto",
+    "alternates_face": [
+      "BACK"
+    ]
+  },
+  "022": {
+    "primary": [
+      371.0,
+      332.0
+    ],
+    "alternates": [],
+    "face": "BACK",
+    "face_confidence": 0.26332324877821733,
+    "face_source": "auto"
+  },
+  "023": {
+    "primary": [
+      544.0,
+      192.0
+    ],
+    "alternates": [
+      [
+        176.0,
+        187.0
+      ]
+    ],
+    "face": "FRONT",
+    "face_confidence": 0.22868818037923572,
+    "face_source": "auto",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "024": {
+    "primary": [
+      526.0,
+      193.0
+    ],
+    "alternates": [
+      [
+        180.0,
+        193.0
+      ]
+    ],
+    "face": "FRONT",
+    "face_confidence": 0.2328823350562481,
+    "face_source": "auto",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "025": {
+    "primary": [
+      497.0,
+      199.0
+    ],
+    "alternates": [
+      [
+        177.0,
+        190.0
+      ]
+    ],
+    "face": "FRONT",
+    "face_confidence": 0.2797961749718748,
+    "face_source": "auto",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "026": {
+    "primary": [
+      334.0,
+      259.0
+    ],
+    "alternates": [],
+    "face": "BACK",
+    "face_confidence": 0.28196896736222576,
+    "face_source": "auto"
+  },
+  "027": {
+    "primary": [
+      343.0,
+      260.0
+    ],
+    "alternates": [],
+    "face": "BACK",
+    "face_confidence": 0.2832482536270822,
+    "face_source": "auto"
+  },
+  "028": null,
+  "029": {
+    "primary": [
+      305.0,
+      197.0
+    ],
+    "alternates": [],
+    "face": "FRONT",
+    "face_confidence": 0.18577529566360051,
+    "face_source": "auto"
+  },
+  "030": {
+    "primary": [
+      196.0,
+      163.0
+    ],
+    "alternates": [],
+    "face": "FRONT",
+    "face_confidence": 0.17811253876827648,
+    "face_source": "auto"
+  },
+  "031": {
+    "primary": [
+      180.0,
+      158.0
+    ],
+    "alternates": [],
+    "face": "FRONT",
+    "face_confidence": 0.30021232729175,
+    "face_source": "auto"
+  },
+  "032": {
+    "primary": [
+      177.0,
+      162.0
+    ],
+    "alternates": [
+      [
+        413.0,
+        185.0
+      ]
+    ],
+    "face": "FRONT",
+    "face_confidence": 1.0,
+    "face_source": "manual",
+    "alternates_face": [
+      "BACK"
+    ]
+  },
+  "033": {
+    "primary": [
+      416.0,
+      201.0
+    ],
+    "alternates": [
+      [
+        178.0,
+        155.0
+      ]
+    ],
+    "face": "BACK",
+    "face_confidence": 1.0,
+    "face_source": "manual",
+    "alternates_face": [
+      "FRONT"
+    ]
+  },
+  "034": {
+    "primary": [
+      245.0,
+      257.0
+    ],
+    "alternates": [],
+    "face": "BACK",
+    "face_confidence": 1.0,
+    "face_source": "manual"
+  },
+  "035": {
+    "primary": [
+      368.0,
+      181.0
+    ],
+    "alternates": [
+      [
+        179.0,
+        160.0
+      ]
+    ],
+    "face": "FRONT",
+    "face_confidence": 0.3743078626799557,
+    "face_source": "auto",
+    "alternates_face": [
+      "FRONT"
+    ]
+  }
+}
