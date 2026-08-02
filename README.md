@@ -2,16 +2,18 @@
 
 Detects the **topmost flattened cardbox blank** in a bin from RealSense
 D435 RGB-D frames. The blank is modelled as its true physical structure:
-**3 rigid faces joined by 2 edge-revolute hinges**, whose outline is an
-**8-point polygon** (full-width middle panel ~29x12 cm + two narrower
-flaps; one flap's visible height is a per-frame fold state).
+**3 rigid faces joined by 2 perpendicular edge-revolute hinges** — the
+**corner face** at the L's junction plus **one face along each
+extension** (arm A, tab B), hinges meeting at the inner corner — whose
+outline is an **8-point polygon** (the top-flap sliver's visible height
+is a per-frame fold state riding with arm A).
 
 ## Components
 
 | file | role |
 |---|---|
 | `pipeline.py` | classical RGB-D proposal stage (depth-gradient edges, watershed, coplanar merge, topness voting), ~0.35 s/frame CPU |
-| `l_fit.py` | **8-gon template fit**: chamfer-matches the canonical 3-face polygon over rotation/mirror/scale/fold-state against plane-space compatibility maps. Outputs the 8-point boundary, per-face quads (px + 3D), middle-face box, pose. The labelling engine and geometric authority. ~2.4 s/frame CPU |
+| `l_fit.py` | **8-gon template fit**: chamfer-matches the canonical 3-face polygon over rotation/mirror/scale/fold-state against plane-space compatibility maps. Outputs the 8-point boundary, per-face quads (px + 3D), corner-face box, pose. The labelling engine and geometric authority. ~2.4 s/frame CPU |
 | `sam_refine.py` | optional SAM 2.1-tiny hybrid masker (prompted by classical proposals, depth-scored) |
 | `synth3.py` | hinge-articulated synthetic scene generator (empty-bin background) |
 | `synth_realbg.py` | real-background composites: articulated boxes pasted onto real frames — top box by construction, perfect labels, minimal domain gap |

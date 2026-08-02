@@ -18,10 +18,12 @@ import os
 import pipeline as P
 
 # canonical 8-gon (metres), calibrated on the single-box frames:
-# 3 faces, 2 edge-revolute hinges. Top flap F1 (flush left), full-width
-# middle panel M, bottom flap F3 (flush right). The top flap's visible
-# height H1 is a FOLD STATE (often folded under -> 0, degenerating to
-# the 6-point L).
+# 3 faces, 2 edge-revolute hinges. The L intrinsically decomposes into
+# the CORNER face at its junction plus one face along each extension:
+# arm A (leftward), corner C, tab B (downward). The hinges are
+# perpendicular (A-C vertical, C-B horizontal) and meet at the L's inner
+# corner. The top flap's visible height H1 is a FOLD STATE (often folded
+# under -> 0, degenerating to the 6-point L); its sliver rides with arm A.
 L_W, L_H = 0.292, 0.220        # outer footprint (H at h1=0)
 F1_W = 0.120                   # top flap width
 F3_W, F3_H = 0.136, 0.100      # bottom flap
@@ -55,24 +57,27 @@ def l_polygon(scale=1.0, mirror=False, h1=0.0):
 
 
 def l_faces(scale=1.0, mirror=False, h1=0.0):
-    """The 3 faces as corner quads (canonical, centred): [F1, M(middle), F3].
-    Hinges: F1-M at y=h1, M-F3 at y=H-h3 — 2 edge revolute joints."""
+    """The 3 faces of the L as quads (canonical, centred):
+    [A(arm), C(corner), B(tab)]. C sits at the L's junction; hinges are
+    A-C at x=W-w3 (vertical) and C-B at y=H-h3 (horizontal) — 2 edge
+    revolute joints meeting at the inner corner. The top-flap sliver
+    (h1 fold state) rides rigidly with arm A."""
     W = L_W * scale
     H = (L_H + h1) * scale
-    w1, w3, h3 = F1_W * scale, F3_W * scale, F3_H * scale
+    w3, h3 = F3_W * scale, F3_H * scale
     h1s = h1 * scale
-    F1 = np.array([(0, 0), (w1, 0), (w1, h1s), (0, h1s)], np.float64)
-    M = np.array([(0, h1s), (W, h1s), (W, H - h3), (0, H - h3)], np.float64)
-    F3 = np.array([(W - w3, H - h3), (W, H - h3), (W, H), (W - w3, H)],
-                  np.float64)
+    xc, yc = W - w3, H - h3
+    A = np.array([(0, 0), (xc, 0), (xc, yc), (0, yc)], np.float64)
+    C = np.array([(xc, h1s), (W, h1s), (W, yc), (xc, yc)], np.float64)
+    B = np.array([(xc, yc), (W, yc), (W, H), (xc, H)], np.float64)
     out = []
-    for q in (F1, M, F3):
+    for q in (A, C, B):
         q = q - [W / 2, H / 2]
         if mirror:
             q[:, 0] *= -1
             q = q[::-1]
         out.append(q)
-    return out            # [F1, M(middle), F3]
+    return out            # [A(arm), C(corner), B(tab)]
 
 
 def make_templates():
@@ -216,17 +221,17 @@ def run(frames=None):
                f"{'' if ok_fit else ' LOW-CONF'}")
         cv2.putText(p1, txt, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 0), 4)
         cv2.putText(p1, txt, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.65, col, 2)
-        # side panel: the 3 FACES (label map 1/2/3) + middle-face 4-corner box
+        # side panel: the 3 FACES (label map 1/2/3) + corner-face 4-corner box
         FACE_COLS = [(80, 200, 80), (60, 120, 255), (255, 170, 60)]
-        FACE_NAMES = ["F1", "M(mid)", "F3"]
+        FACE_NAMES = ["A(arm)", "C(corner)", "B(tab)"]
         face_map = np.zeros(rgb.shape[:2], np.uint8)
         p2 = (rgb * 0.35).astype(np.uint8)
         for i, q in enumerate(fit["faces_px"]):
             qi = q.astype(np.int32)
-            cv2.fillPoly(face_map, [qi], i + 1)
             fm = np.zeros(rgb.shape[:2], np.uint8)
             cv2.fillPoly(fm, [qi], 255)
-            mm = fm > 0
+            mm = (fm > 0) & (mask > 0)   # clip to the fitted outline
+            face_map[mm] = i + 1
             colf = np.array(FACE_COLS[i], np.float32)
             p2[mm] = (0.35 * rgb[mm] + 0.6 * colf).clip(0, 255).astype(np.uint8)
             ys, xs = np.nonzero(mm)
@@ -245,10 +250,10 @@ def run(frames=None):
                       "rot_deg": fit["deg"], "mirror": fit["mirror"],
                       "scale": fit["scale"], "top_flap_h1_m": fit["h1"],
                       "faces_px": {n_: fit["faces_px"][i].round(1).tolist()
-                                   for i, n_ in enumerate(("F1_flap", "M_middle", "F3_flap"))},
+                                   for i, n_ in enumerate(("A_arm", "C_corner", "B_tab"))},
                       "faces_3d": {n_: fit["faces3d"][i].tolist()
-                                   for i, n_ in enumerate(("F1_flap", "M_middle", "F3_flap"))},
-                      "middle_face_box_px": fit["faces_px"][1].round(1).tolist()}
+                                   for i, n_ in enumerate(("A_arm", "C_corner", "B_tab"))},
+                      "corner_face_box_px": fit["faces_px"][1].round(1).tolist()}
         print(f"{f}: score={fit['score']:.2f} rot={fit['deg']} "
               f"scale={fit['scale']} mirror={fit['mirror']}"
               f"{'' if ok_fit else ' LOW-CONF'}")
