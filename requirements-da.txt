@@ -1,0 +1,7 @@
+# Depth-Anything-V2 top-box masking (da_depth.py), CPU-only.
+# Model weights auto-download from Hugging Face on first run (~99 MB) into
+# models/da2/. torch is NOT required (ONNX runtime).
+onnxruntime
+huggingface_hub
+numpy
+opencv-python-headless

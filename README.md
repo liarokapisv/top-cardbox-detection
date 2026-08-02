@@ -13,6 +13,7 @@ flaps; one flap's visible height is a per-frame fold state).
 | `pipeline.py` | classical RGB-D proposal stage (depth-gradient edges, watershed, coplanar merge, topness voting), ~0.35 s/frame CPU |
 | `l_fit.py` | **8-gon template fit**: chamfer-matches the canonical 3-face polygon over rotation/mirror/scale/fold-state against plane-space compatibility maps. Outputs the 8-point boundary, per-face quads (px + 3D), middle-face box, pose. The labelling engine and geometric authority. ~2.4 s/frame CPU |
 | `sam_refine.py` | optional SAM 2.1-tiny hybrid masker (prompted by classical proposals, depth-scored) |
+| `da_depth.py` | **Depth-Anything-V2 (ONNX, CPU) top-box masker**: RGB->relative depth, floor-detrend, colour-prior box regions split at DA depth steps + ranked by relief for topness, then `l_fit` for the 8-gon. ~2 s/frame CPU, no GPU/torch. See below. |
 | `synth3.py` | hinge-articulated synthetic scene generator (empty-bin background) |
 | `synth_realbg.py` | real-background composites: articulated boxes pasted onto real frames — top box by construction, perfect labels, minimal domain gap |
 | `train.py` / `train2.py` | UNet definition + CUDA-ready trainer (AMP, auto device, rotation-heavy augmentation, resumable: `python3 train2.py <epochs> [resume]`) |
@@ -39,6 +40,30 @@ docker run --gpus all -v /path/to/two_lights:/app/dataset/two_lights -it topcard
 ```
 
 Works on CPU unchanged (auto-fallback, BATCH=8).
+
+## Depth-Anything-V2 top-box masking (CPU, no GPU)
+
+The captured D435 depth cannot delineate a *flat-lying* blank: the bin floor
+is bowed ~2 cm (stereo distortion) and per-pixel noise is ~3 mm, while a
+blank is ~3 mm thick. Depth-Anything-V2 predicts RGB-only relative depth
+with crisp, appearance-aligned boundaries, and its ViT-S runs ~2 s/frame on
+CPU. `da_depth.py` uses DA relief to (a) rank overlapping blanks by nearness
+= topness and (b) split a stack at the depth step, gated by the existing HSV
+box/bin colour prior, then reuses `l_fit.fit_frame` for the metric 8-gon.
+
+```bash
+pip install -r requirements-da.txt      # onnxruntime, no torch
+python3 da_depth.py 009                 # one frame -> overlays_da/009_da.png
+python3 da_depth.py --compare           # all frames + contact_sheet_da.jpg
+```
+
+Weights (`onnx-community/depth-anything-v2-small`, ~99 MB) auto-download to
+`models/da2/` on first run. Each `overlays_da/NNN_da.png` panel is
+RGB | DA depth | floor-relief | mask+8-gon; results in
+`overlays_da/da_results.json` (same schema as `lfit_results.json`). On the
+36-frame set: 35/36 fitted (028 is the empty bin), all single-box and most
+cluttered frames land the top box; only the two densest ambiguous piles fall
+below the `l_fit` accept threshold (reported as low-confidence, not forced).
 
 ## Recommended production recipe
 
