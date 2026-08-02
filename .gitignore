@@ -6,3 +6,5 @@ synth_rbg_val/
 overlays*/
 __pycache__/
 *.log
+/*.pt
+.claude/

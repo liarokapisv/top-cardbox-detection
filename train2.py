@@ -16,9 +16,10 @@ import time
 
 from train import TinyUNet, dice_loss
 
-torch.set_num_threads(int(os.environ.get("TORCH_THREADS", "4")))
+torch.set_num_threads(int(os.environ.get("TORCH_THREADS", "12")))
 W, H = 256, 192
 CKPT = "topbox_unet2.pt"
+BEST_CKPT = "topbox_unet2_best.pt"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 BATCH = int(os.environ.get("BATCH", "32" if DEVICE.type == "cuda" else "8"))
 USE_AMP = DEVICE.type == "cuda"
@@ -68,11 +69,19 @@ def main():
         print("resumed", flush=True)
     print(f"device {DEVICE} batch {BATCH} amp {USE_AMP} params "
           f"{sum(p.numel() for p in net.parameters())/1e6:.2f}M", flush=True)
-    opt = torch.optim.Adam(net.parameters(), lr=1.5e-3 if not resume else 6e-4)
+    base_lr = 1.5e-3 if not resume else 6e-4
+    opt = torch.optim.Adam(net.parameters(), lr=base_lr)
+    warmup = 3 if not resume else 0
+    sched = torch.optim.lr_scheduler.CosineAnnealingLR(
+        opt, T_max=max(n_ep - warmup, 1), eta_min=base_lr * 0.01)
     scaler = torch.amp.GradScaler(enabled=USE_AMP)
     bs = BATCH
     rng = np.random.RandomState(int(time.time()) % 9999)
+    best_iou = 0.0
     for ep in range(n_ep):
+        if ep < warmup:
+            for g in opt.param_groups:
+                g["lr"] = base_lr * (ep + 1) / warmup
         t0 = time.time()
         net.train()
         idx = rng.permutation(len(xtr))
@@ -106,9 +115,17 @@ def main():
                 for j in range(len(p)):
                     gt = yva[i + j] > 0.5
                     ious.append((p[j] & gt).sum() / max((p[j] | gt).sum(), 1))
-        print(f"ep {ep}: loss {tot/len(xtr):.4f} val IoU {np.mean(ious):.3f} "
+        miou = float(np.mean(ious))
+        print(f"ep {ep}: loss {tot/len(xtr):.4f} val IoU {miou:.3f} "
+              f"med {np.median(ious):.3f} lr {opt.param_groups[0]['lr']:.2e} "
               f"({time.time()-t0:.0f}s)", flush=True)
+        if ep >= warmup:
+            sched.step()
         torch.save(net.state_dict(), CKPT)
+        if miou > best_iou:
+            best_iou = miou
+            torch.save(net.state_dict(), BEST_CKPT)
+            print(f"  new best {best_iou:.3f} -> {BEST_CKPT}", flush=True)
 
 
 if __name__ == "__main__":
