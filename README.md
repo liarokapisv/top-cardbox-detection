@@ -60,10 +60,24 @@ python3 da_depth.py --compare           # all frames + contact_sheet_da.jpg
 Weights (`onnx-community/depth-anything-v2-small`, ~99 MB) auto-download to
 `models/da2/` on first run. Each `overlays_da/NNN_da.png` panel is
 RGB | DA depth | floor-relief | mask+8-gon; results in
-`overlays_da/da_results.json` (same schema as `lfit_results.json`). On the
-36-frame set: 35/36 fitted (028 is the empty bin), all single-box and most
-cluttered frames land the top box; only the two densest ambiguous piles fall
-below the `l_fit` accept threshold (reported as low-confidence, not forced).
+`overlays_da/da_results.json` (same schema as `lfit_results.json`). All 35
+blanks fit (028 is the empty bin).
+
+`eval_gt.py` scores the *chosen* top box against the hand ground truth
+(`dataset/two_lights/gt.json`, the top-box point per frame):
+
+```bash
+python3 eval_gt.py overlays_da/da_results.json   # 24/35 correct top box
+```
+
+**Two-light occlusion cut (`DA_SHADOW=1`).** Flush-stacked identical blanks
+have no DA depth step, but the two lamps cast a thin shadow at the upper
+blank's cut edge. Setting `DA_SHADOW=1` adds those shadow/shading ridges to
+the split step, raising correct top-box picks to **26/35** (hard misses
+6->4). It can over-cut a heavily *folded* single blank (its fold creases
+mimic occlusion shadows), so it is opt-in. Distinguishing intra-blank folds
+from inter-blank occlusion at the cut stage is the open problem (`l_fit`
+resolves it at the fit stage via the L template).
 
 ## Recommended production recipe
 
